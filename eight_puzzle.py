@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from math import floor
 from search import *
 
 ACTIONS = ["up", "right", "down", "left"]
@@ -116,7 +117,7 @@ def mess_up(board,actions,moves):
     np_board = np.asanyarray(board)
 
     for iter in range(0,moves):
-        board = apply_action(board,actions[random.randint(0,3)])
+        np_board = apply_action(np_board,actions[random.randint(0,3)])
 
     # create a new tuple from the numpy array
     new_board = tuple(map(tuple, np_board))
@@ -125,12 +126,23 @@ def mess_up(board,actions,moves):
 
 
 class EightPuzzleProblem(Problem):
-    def __init__(self):
+    def __init__(self,simple=False):
+        """
+        Init the Eight Puzzle
+        If simple param is true, the start state of the 8-puzzle
+        will be one step away from the solution
+        :param simple:
+        Bool that sets whether or not the starting state will
+        be a random puzzle or a puzzle that is one step away from
+        completion
+        """
         # create a board then mess it up for end state
-        # start_state = mess_up(start_state, ACTIONS, 10)
         start_state = tuple(map(tuple, np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]])))
         # create a random puzzle configuration to test on
-        mess_up(start_state, ACTIONS, 30)
+        if(simple):
+            start_state = tuple(map(tuple, np.array([[1, 2, 3], [4, 5, 6], [7, 0, 8]])))
+        else:
+            start_state = mess_up(start_state, ACTIONS, 30)
 
         goal_state = tuple(map(tuple, np.array([[1, 2, 3], [4, 5, 6], [7, 8, 0]])))
         super().__init__(start_state, goal_state)
@@ -179,6 +191,84 @@ class EightPuzzleProblem(Problem):
         """
         result = np.array_equal(a.state, b.state)
         return result
+
+class EightPuzzleProblemDisplacedTiles(EightPuzzleProblem):
+    """
+    Implements the functions needed to run a non traditional search
+    Uses Displaced Tiles to evaluate closeness to solution
+    Implements value method
+    """
+    def __init__(self, simple=False):
+        """
+        Generates possible solutions for an 8-tile puzzle
+        :param state:
+        The current layout of the tile puzzle
+        :return:
+        an iterable represen
+        """
+        super().__init__(simple)
+
+    def value(self, state):
+        """
+        Returns number representing the completeness of the board
+        The higher the value, the closer the board is to complete
+        :param state:
+        The current board state
+        :return:
+        a number between 0 and 1, and 2, with 2 representing complete
+        """
+        val = n_out_of_order(state)
+        # val is determined by the number of out of order pieces
+        if val:
+            # 1 is divided by val
+            # since we want to maximize val, but by default it approaches
+            # 0 as it is more complete, this returns a number that goes
+            # from 0 to 1, with values closer to 1 being more complete
+            return 1.0/val
+        else:
+            # since 0 represents complete, division by 0 is a problem
+            # so we return 2 if val is 0
+            # this ensures a complete puzzle always returns the highest value
+            return 2.0
+
+class EightPuzzleProblemManhattanDistance(EightPuzzleProblem):
+    """
+    Implements the functions needed to run a non traditional search
+    Uses Displaced Tiles to evaluate closeness to solution
+    Implements value method
+    """
+    def __init__(self, simple=False):
+        """
+        Generates possible solutions for an 8-tile puzzle
+        :param state:
+        The current layout of the tile puzzle
+        :return:
+        an iterable represen
+        """
+        super().__init__(simple)
+
+    def value(self, state):
+        """
+        Returns number representing the completeness of the board
+        The higher the value, the closer the board is to complete
+        :param state:
+        The current board state
+        :return:
+        a number between 0 and 1, and 2, with 2 representing complete
+        """
+        val = manhattan_distance(state)
+        # val is determined by the number of out of order pieces
+        if val:
+            # 1 is divided by val
+            # since we want to maximize val, but by default it approaches
+            # 0 as it is more complete, this returns a number that goes
+            # from 0 to 1, with values closer to 1 being more complete
+            return 1.0/val
+        else:
+            # since 0 represents complete, division by 0 is a problem
+            # so we return 2 if val is 0
+            # this ensures a complete puzzle always returns the highest value
+            return 2.0
 
 def random_search(board):
     # create a sequce of 32 random moves and keep going until it is solved.
